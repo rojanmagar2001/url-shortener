@@ -12,6 +12,10 @@ describe("config loader", () => {
       REDIS_URL: "",
       KAFKA_BROKERS: "",
       TIMESCALE_URL: "",
+      JWT_ISSUER: "",
+      JWT_AUDIENCE: "",
+      JWT_ACCESS_TTL_SECONDS: "",
+      JWT_SECRET: "",
     };
 
     const load = async () => {
@@ -35,6 +39,10 @@ describe("config loader", () => {
       REDIS_URL: "redis://x",
       KAFKA_BROKERS: "k1:9092, k2:9092",
       TIMESCALE_URL: "postgresql://y",
+      JWT_ISSUER: "iss",
+      JWT_AUDIENCE: "aud",
+      JWT_ACCESS_TTL_SECONDS: "900",
+      JWT_SECRET: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     };
 
     const mod = await import("@/shared/config/index.js");

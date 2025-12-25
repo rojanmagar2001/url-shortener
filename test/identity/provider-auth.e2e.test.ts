@@ -47,7 +47,9 @@ describe("POST /auth/provider (e2e)", () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.tokens.accessToken).toContain("dev-access-");
+    expect(body.tokens.accessToken.split(".")).toHaveLength(3);
+    expect(typeof body.tokens.refreshToken).toBe("string");
+    expect(body.tokens.refreshToken).toContain(".");
 
     await app.close();
   });

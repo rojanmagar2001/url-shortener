@@ -53,7 +53,7 @@ export async function authenticateWithProvider(
     // Create new user (passwordHash null for non-local providers)
     user = await deps.users.createUser({
       email,
-      passwordHash: "!", // placeholder; will be replaced in Step 6 when createUser supports nullable hash
+      passwordHash: null, // placeholder; will be replaced in Step 6 when createUser supports nullable hash
     });
 
     // We will fix createUser signature in Step 6 (make passwordHash optional/nullable).

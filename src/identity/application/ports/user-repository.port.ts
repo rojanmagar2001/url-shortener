@@ -2,7 +2,7 @@ import type { User } from "@/identity/domain/user";
 
 export type CreateUserInput = {
   email: string;
-  passwordHash: string;
+  passwordHash: string | null;
 };
 
 export type UserRepositoryPort = {

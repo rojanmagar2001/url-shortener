@@ -29,7 +29,9 @@ describe("auth (e2e)", () => {
     expect(registerRes.statusCode).toBe(201);
     const reg = registerRes.json();
     expect(reg.userId).toBeTypeOf("string");
-    expect(reg.tokens.accessToken).toContain("dev-access-");
+    expect(reg.tokens.accessToken.split(".")).toHaveLength(3);
+    expect(typeof reg.tokens.refreshToken).toBe("string");
+    expect(reg.tokens.refreshToken).toContain(".");
 
     const loginRes = await app.inject({
       method: "POST",
@@ -42,7 +44,10 @@ describe("auth (e2e)", () => {
 
     expect(loginRes.statusCode).toBe(200);
     const login = loginRes.json();
-    expect(login.tokens.refreshToken).toContain("dev-refresh-");
+
+    expect(login.tokens.accessToken.split(".")).toHaveLength(3);
+    expect(typeof login.tokens.refreshToken).toBe("string");
+    expect(login.tokens.refreshToken).toContain(".");
 
     await app.close();
   });

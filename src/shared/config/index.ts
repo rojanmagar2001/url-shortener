@@ -26,6 +26,12 @@ function loadConfig(): AppConfig {
     timescale: {
       url: process.env.TIMESCALE_URL ?? "",
     },
+    jwt: {
+      issuer: process.env.JWT_ISSUER ?? "url-shortener",
+      audience: process.env.JWT_AUDIENCE ?? "url-shortener-web",
+      accessTtlSeconds: process.env.JWT_ACCESS_TTL_SECONDS ?? "900",
+      secret: process.env.JWT_SECRET ?? "",
+    },
   };
 
   const parsed = configSchema.safeParse(raw);
