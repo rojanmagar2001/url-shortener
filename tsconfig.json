@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "rootDir": ".",
+    "outDir": "dist",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
+    "resolveJsonModule": true,
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+  ]
+}
