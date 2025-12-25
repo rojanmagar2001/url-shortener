@@ -13,7 +13,7 @@ describe("prisma + postgres (integration)", () => {
   });
 
   afterAll(async () => {
-    // await prisma.$disconnect().catch(() => undefined);
+    await prisma.$disconnect();
     await stopInfra(infra);
   });
 

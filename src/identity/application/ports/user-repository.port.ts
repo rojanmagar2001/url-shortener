@@ -6,6 +6,7 @@ export type CreateUserInput = {
 };
 
 export type UserRepositoryPort = {
+  findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   createUser(input: CreateUserInput): Promise<User>;
 };

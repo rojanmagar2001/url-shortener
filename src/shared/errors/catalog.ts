@@ -2,6 +2,11 @@ export type ErrorCode =
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
   | "INTERNAL_ERROR"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "SESSION_INVALID"
+  | "SESSION_REVOKED"
+  | "SESSION_EXPIRED"
   | "IDENTITY_EMAIL_TAKEN"
   | "IDENTITY_INVALID_CREDENTIALS"
   | "IDENTITY_USER_DISABLED"
@@ -29,6 +34,29 @@ export const ERRORS: Record<ErrorCode, ErrorDefinition> = {
     code: "INTERNAL_ERROR",
     statusCode: 500,
     message: "Internal error",
+  },
+
+  UNAUTHORIZED: {
+    code: "UNAUTHORIZED",
+    statusCode: 401,
+    message: "Unauthorized",
+  },
+  FORBIDDEN: { code: "FORBIDDEN", statusCode: 403, message: "Forbidden" },
+
+  SESSION_INVALID: {
+    code: "SESSION_INVALID",
+    statusCode: 401,
+    message: "Invalid session",
+  },
+  SESSION_REVOKED: {
+    code: "SESSION_REVOKED",
+    statusCode: 401,
+    message: "Session revoked",
+  },
+  SESSION_EXPIRED: {
+    code: "SESSION_EXPIRED",
+    statusCode: 401,
+    message: "Session expired",
   },
 
   IDENTITY_EMAIL_TAKEN: {

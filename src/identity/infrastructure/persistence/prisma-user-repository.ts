@@ -3,7 +3,7 @@ import type {
   CreateUserInput,
   UserRepositoryPort,
 } from "@/identity/application/ports/user-repository.port";
-import { PrismaClient } from "@/generated/prisma/client";
+import type { PrismaClient } from "@/generated/prisma/client";
 
 function mapUser(row: {
   id: string;
@@ -25,6 +25,11 @@ function mapUser(row: {
 
 export class PrismaUserRepository implements UserRepositoryPort {
   constructor(private readonly prisma: PrismaClient) {}
+
+  async findById(id: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({ where: { id } });
+    return row ? mapUser(row) : null;
+  }
 
   async findByEmail(email: string): Promise<User | null> {
     const row = await this.prisma.user.findUnique({ where: { email } });

@@ -1,18 +1,27 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { registerSchema, loginSchema, providerAuthSchema } from "./schemas";
+import {
+  registerSchema,
+  loginSchema,
+  providerAuthSchema,
+  refreshSchema,
+} from "./schemas";
 import type { RegisterWithPasswordDeps } from "@/identity/application/use-cases/register-with-password";
 import { registerWithPassword } from "@/identity/application/use-cases/register-with-password";
 import type { LoginWithPasswordDeps } from "@/identity/application/use-cases/login-with-password";
 import { loginWithPassword } from "@/identity/application/use-cases/login-with-password";
 import type { AuthenticateWithProviderDeps } from "@/identity/application/use-cases/authenticate-with-provider";
 import { authenticateWithProvider } from "@/identity/application/use-cases/authenticate-with-provider";
+import { refreshSession } from "@/identity/application/use-cases/refresh-session";
+import type { SessionRepositoryPort } from "@/identity/application/ports/session-repository.port";
+import type { TokenServicePort } from "@/identity/application/ports/token-service.port";
 import { err } from "@/shared/errors";
 
 export type IdentityHttpDeps = {
   registerDeps: RegisterWithPasswordDeps;
   loginDeps: LoginWithPasswordDeps;
   providerDeps: AuthenticateWithProviderDeps;
+  refreshDeps: { sessions: SessionRepositoryPort; tokens: TokenServicePort };
 };
 
 // Tiny helper to convert Zod failures into thrown errors the middleware handles.
@@ -53,6 +62,12 @@ export async function registerIdentityRoutes(
     }
 
     const result = await authenticateWithProvider(deps.providerDeps, body);
+    return reply.status(200).send(result);
+  });
+
+  app.post("/auth/refresh", async (req, reply) => {
+    const body = parseOrThrow(refreshSchema, req.body);
+    const result = await refreshSession(deps.refreshDeps, body);
     return reply.status(200).send(result);
   });
 }

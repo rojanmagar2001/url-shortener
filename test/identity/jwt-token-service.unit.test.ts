@@ -1,9 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { JwtTokenService } from "@/identity/infrastructure/crypto/jwt-token-service";
 import type { SessionRepositoryPort } from "@/identity/application/ports/session-repository.port";
+import type { UserRepositoryPort } from "@/identity/domain/ports/user-repository.port";
 
 describe("JwtTokenService", () => {
   it("issues and verifies access token", async () => {
+    const users: UserRepositoryPort = {
+      async findById(id: string) {
+        return {
+          id,
+          email: "test@example.com",
+          role: "user",
+          passwordHash: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      },
+      async findByEmail() {
+        return null;
+      },
+      async createUser() {
+        throw new Error("Not implemented in test");
+      },
+    };
+
     const sessions: SessionRepositoryPort = {
       async createSession() {
         return {
@@ -29,11 +49,11 @@ describe("JwtTokenService", () => {
         secret: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       },
       sessions,
+      users, // Add the users repository
     );
 
     const pair = await svc.issueForUser("u1");
     const verified = await svc.verifyAccessToken(pair.accessToken);
-
     expect(verified.userId).toBe("u1");
     expect(verified.sessionId).toBe("s1");
   });

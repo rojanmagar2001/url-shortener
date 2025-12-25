@@ -6,6 +6,7 @@ export type TokenPair = {
 export type VerifiedAccess = {
   userId: string;
   sessionId: string;
+  role: "user" | "admin";
 };
 
 export type TokenServicePort = {

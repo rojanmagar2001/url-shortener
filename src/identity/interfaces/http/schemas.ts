@@ -14,3 +14,7 @@ export const providerAuthSchema = z.object({
   provider: z.enum(["local", "google", "auth0", "oidc"]),
   input: z.unknown(),
 });
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(10),
+});

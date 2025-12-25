@@ -20,6 +20,9 @@ describe("registerWithPassword (unit)", () => {
           createdAt: new Date(),
         };
       },
+      async findById() {
+        return null;
+      },
     };
 
     const passwordHasher: PasswordHasherPort = {
@@ -34,6 +37,9 @@ describe("registerWithPassword (unit)", () => {
     const tokens: TokenServicePort = {
       async issueForUser() {
         return { accessToken: "a", refreshToken: "r" };
+      },
+      async verifyAccessToken() {
+        throw new Error();
       },
     };
 

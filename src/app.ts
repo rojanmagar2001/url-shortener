@@ -13,6 +13,8 @@ import { LocalPasswordAuthProvider } from "@/identity/infrastructure/providers/l
 import type { AuthProviderPort } from "@/identity/application/ports/auth-provider.port";
 import { JwtTokenService } from "@/identity/infrastructure/crypto/jwt-token-service";
 import { registerAuthMiddleware } from "@/identity/interfaces/http/middleware";
+import { registerMeRoutes } from "@/identity/interfaces/http/me-routes";
+import { registerAdminRoutes } from "@/admin/interfaces/http/routes";
 
 export type CreateAppOptions = {
   logger?: boolean;
@@ -38,7 +40,7 @@ export function createApp(options: CreateAppOptions = {}): FastifyInstance {
   const sessionsRepo = new PrismaSessionRepository(prisma);
   const passwordHasher = new BcryptPasswordHasher(12);
 
-  const tokens = new JwtTokenService(config.jwt, sessionsRepo);
+  const tokens = new JwtTokenService(config.jwt, sessionsRepo, usersRepo);
 
   const providers = new Map<string, AuthProviderPort>();
   providers.set(
@@ -47,9 +49,9 @@ export function createApp(options: CreateAppOptions = {}): FastifyInstance {
   );
 
   // Attach req.auth for all requests
-  void app.register(registerAuthMiddleware, { tokens });
+  app.register(registerAuthMiddleware, { tokens });
 
-  void app.register(async (instance) => {
+  app.register(async (instance) => {
     await registerIdentityRoutes(instance, {
       registerDeps: { users: usersRepo, passwordHasher, tokens },
       loginDeps: { users: usersRepo, passwordHasher, tokens },
@@ -59,8 +61,13 @@ export function createApp(options: CreateAppOptions = {}): FastifyInstance {
         users: usersRepo,
         tokens,
       },
+      refreshDeps: { sessions: sessionsRepo, tokens },
     });
   });
+
+  app.register(registerAdminRoutes);
+
+  app.register(registerMeRoutes);
 
   app.get("/", async () => ({ service: "url-shortener" as const }));
 

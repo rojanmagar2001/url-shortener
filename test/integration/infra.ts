@@ -15,6 +15,25 @@ export type StartedInfra = {
   redisUrl: string;
 };
 
+async function createDbPush(
+  databaseUrl: string,
+  maxRetries = 5,
+): Promise<void> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      // Apply migrations to the container DB
+      await execAsync("pnpm exec prisma db push --accept-data-loss", {
+        env: { ...process.env, DATABASE_URL: databaseUrl },
+      });
+      return; // Success!
+    } catch (error) {
+      if (i === maxRetries - 1) throw error; // Last attempt failed
+      // Wait before retrying (exponential backoff)
+      await new Promise((resolve) => setTimeout(resolve, Math.pow(2, i) * 100));
+    }
+  }
+}
+
 export async function startInfra(): Promise<StartedInfra> {
   const postgres = await new GenericContainer("postgres:16-alpine")
     .withEnvironment({
@@ -32,13 +51,7 @@ export async function startInfra(): Promise<StartedInfra> {
   const pgPort = postgres.getMappedPort(5432);
   const databaseUrl = `postgresql://test:test@${pgHost}:${pgPort}/app?schema=public`;
 
-  // Apply Prisma schema to the ephemeral DB.
-  await execAsync("pnpm exec prisma db push --accept-data-loss", {
-    env: {
-      ...process.env,
-      DATABASE_URL: databaseUrl,
-    },
-  });
+  await createDbPush(databaseUrl, 5);
 
   const redis = await new GenericContainer("redis:7-alpine")
     .withExposedPorts(6379)
@@ -54,7 +67,6 @@ export async function startInfra(): Promise<StartedInfra> {
 
 export async function stopInfra(infra: StartedInfra): Promise<void> {
   if (!infra) return;
-
-  await infra.redis?.stop().catch(() => undefined);
-  await infra.postgres?.stop().catch(() => undefined);
+  await infra.redis?.stop();
+  await infra.postgres?.stop();
 }

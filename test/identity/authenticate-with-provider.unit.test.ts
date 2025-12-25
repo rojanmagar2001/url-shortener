@@ -50,11 +50,17 @@ describe("authenticateWithProvider (unit)", () => {
           createdAt: new Date(),
         };
       },
+      async findById() {
+        return null;
+      },
     };
 
     const tokens: TokenServicePort = {
       async issueForUser(userId) {
         return { accessToken: `a-${userId}`, refreshToken: `r-${userId}` };
+      },
+      async verifyAccessToken() {
+        throw new Error("Not Implemented");
       },
     };
 
