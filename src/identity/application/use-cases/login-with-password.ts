@@ -1,4 +1,4 @@
-import { AppError } from "@/shared/errors";
+import { err } from "@/shared/errors";
 import { normalizeEmail } from "@/identity/domain/user";
 import type { PasswordHasherPort } from "@/identity/application/ports/password-hasher.port";
 import type { TokenServicePort } from "@/identity/application/ports/token-service.port";
@@ -26,19 +26,11 @@ export async function loginWithPassword(
 
   const user = await deps.users.findByEmail(email);
   if (!user || !user.passwordHash) {
-    throw new AppError({
-      code: "IDENTITY_INVALID_CREDENTIALS",
-      message: "Invalid credentials",
-      statusCode: 401,
-    });
+    throw err("IDENTITY_INVALID_CREDENTIALS");
   }
 
   if (user.disabledAt) {
-    throw new AppError({
-      code: "IDENTITY_USER_DISABLED",
-      message: "User is disabled",
-      statusCode: 403,
-    });
+    throw err("IDENTITY_USER_DISABLED");
   }
 
   const ok = await deps.passwordHasher.verify(
@@ -46,11 +38,7 @@ export async function loginWithPassword(
     user.passwordHash,
   );
   if (!ok) {
-    throw new AppError({
-      code: "IDENTITY_INVALID_CREDENTIALS",
-      message: "Invalid credentials",
-      statusCode: 401,
-    });
+    throw err("IDENTITY_INVALID_CREDENTIALS");
   }
 
   const tokens = await deps.tokens.issueForUser(user.id);

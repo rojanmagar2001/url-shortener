@@ -1,61 +1,58 @@
 import type { FastifyInstance } from "fastify";
-import { registerSchema, loginSchema } from "./schemas";
+import { z } from "zod";
+import { registerSchema, loginSchema, providerAuthSchema } from "./schemas";
 import type { RegisterWithPasswordDeps } from "@/identity/application/use-cases/register-with-password";
 import { registerWithPassword } from "@/identity/application/use-cases/register-with-password";
 import type { LoginWithPasswordDeps } from "@/identity/application/use-cases/login-with-password";
 import { loginWithPassword } from "@/identity/application/use-cases/login-with-password";
-import { AppError } from "@/shared/errors/index";
+import type { AuthenticateWithProviderDeps } from "@/identity/application/use-cases/authenticate-with-provider";
+import { authenticateWithProvider } from "@/identity/application/use-cases/authenticate-with-provider";
+import { err } from "@/shared/errors";
 
 export type IdentityHttpDeps = {
   registerDeps: RegisterWithPasswordDeps;
   loginDeps: LoginWithPasswordDeps;
+  providerDeps: AuthenticateWithProviderDeps;
 };
+
+// Tiny helper to convert Zod failures into thrown errors the middleware handles.
+function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    // Throw ZodError so the global handler returns VALIDATION_ERROR with details
+    throw err("VALIDATION_ERROR", {
+      cause: parsed.error.cause,
+      message: parsed.error.name,
+    });
+  }
+  return parsed.data;
+}
 
 export async function registerIdentityRoutes(
   app: FastifyInstance,
   deps: IdentityHttpDeps,
 ): Promise<void> {
   app.post("/auth/register", async (req, reply) => {
-    const parsed = registerSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply
-        .status(400)
-        .send({ error: "VALIDATION_ERROR", details: parsed.error.flatten() });
-    }
-
-    try {
-      const result = await registerWithPassword(deps.registerDeps, parsed.data);
-      return reply.status(201).send(result);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: err.code, message: err.message });
-      }
-      req.log.error({ err }, "register failed");
-      return reply.status(500).send({ error: "INTERNAL_ERROR" });
-    }
+    const body = parseOrThrow(registerSchema, req.body);
+    const result = await registerWithPassword(deps.registerDeps, body);
+    return reply.status(201).send(result);
   });
 
   app.post("/auth/login", async (req, reply) => {
-    const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply
-        .status(400)
-        .send({ error: "VALIDATION_ERROR", details: parsed.error.flatten() });
+    const body = parseOrThrow(loginSchema, req.body);
+    const result = await loginWithPassword(deps.loginDeps, body);
+    return reply.status(200).send(result);
+  });
+
+  app.post("/auth/provider", async (req, reply) => {
+    const body = parseOrThrow(providerAuthSchema, req.body);
+
+    // Defense-in-depth: enforce provider allowlist at HTTP boundary too
+    if (!["local", "google", "auth0", "oidc"].includes(body.provider)) {
+      throw err("IDENTITY_PROVIDER_NOT_SUPPORTED");
     }
 
-    try {
-      const result = await loginWithPassword(deps.loginDeps, parsed.data);
-      return reply.status(200).send(result);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: err.code, message: err.message });
-      }
-      req.log.error({ err }, "login failed");
-      return reply.status(500).send({ error: "INTERNAL_ERROR" });
-    }
+    const result = await authenticateWithProvider(deps.providerDeps, body);
+    return reply.status(200).send(result);
   });
 }

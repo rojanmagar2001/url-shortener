@@ -68,6 +68,9 @@ describe("auth (e2e)", () => {
 
     // validation should fail before checking credentials
     expect(loginRes.statusCode).toBe(400);
+    const body = loginRes.json();
+    expect(body.code).toBe("VALIDATION_ERROR");
+    expect(body.error).toBeTruthy();
 
     await app.close();
   });
