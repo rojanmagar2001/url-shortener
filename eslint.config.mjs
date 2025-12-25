@@ -33,6 +33,7 @@ export default tseslint.config(
       "node_modules/**",
       "eslint.config.mjs",
       "prettier.config.cjs",
+      "prisma.config.ts",
       "*.config.js",
       "*.config.mjs",
       "*.config.cjs",

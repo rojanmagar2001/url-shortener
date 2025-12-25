@@ -1,5 +1,5 @@
-import { config } from "@/shared/config/index.js";
-import { createApp } from "@/app.js";
+import { config } from "@/shared/config";
+import { createApp } from "@/app";
 
 async function main(): Promise<void> {
   const app = createApp({ logger: config.env !== "test" });
