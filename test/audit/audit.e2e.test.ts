@@ -6,16 +6,13 @@ import {
 } from "@/../test/integration/infra";
 import { createApp } from "@/app";
 import { createPrismaClient } from "@/shared/db/prisma";
+import { infraPromise } from "@/../test/setup-e2e";
 
 describe("audit logs (e2e)", () => {
-  let infra: StartedInfra;
+  let infra: Awaited<typeof infraPromise>;
 
   beforeAll(async () => {
-    infra = await startInfra();
-  });
-
-  afterAll(async () => {
-    await stopInfra(infra);
+    infra = await infraPromise;
   });
 
   it("writes audit logs for register and api key creation", async () => {

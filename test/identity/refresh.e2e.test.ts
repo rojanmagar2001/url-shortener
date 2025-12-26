@@ -5,20 +5,17 @@ import {
   type StartedInfra,
 } from "@/../test/integration/infra";
 import { createApp } from "@/app";
+import { infraPromise } from "@/../test/setup-e2e";
 
 function isJwt(token: string): boolean {
   return token.split(".").length === 3;
 }
 
 describe("auth refresh (e2e)", () => {
-  let infra: StartedInfra;
+  let infra: Awaited<typeof infraPromise>;
 
   beforeAll(async () => {
-    infra = await startInfra();
-  });
-
-  afterAll(async () => {
-    await stopInfra(infra);
+    infra = await infraPromise;
   });
 
   it("rotates refresh token and revokes old session", async () => {

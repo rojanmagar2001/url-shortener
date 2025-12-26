@@ -1,20 +1,20 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPrismaClient } from "@/shared/db/prisma";
 import { startInfra, stopInfra, type StartedInfra } from "./infra";
+import { infraPromise } from "@/../test/setup-e2e";
 
 describe("prisma + postgres (integration)", () => {
-  let infra: StartedInfra;
+  let infra: Awaited<typeof infraPromise>;
   let prisma: ReturnType<typeof createPrismaClient>;
 
   beforeAll(async () => {
-    infra = await startInfra();
+    infra = await infraPromise;
     prisma = createPrismaClient(infra.databaseUrl);
     await prisma.$connect();
   });
 
   afterAll(async () => {
     await prisma.$disconnect();
-    await stopInfra(infra);
   });
 
   it("can create and fetch a user", async () => {

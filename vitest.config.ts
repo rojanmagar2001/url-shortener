@@ -8,6 +8,9 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   test: {
     environment: "node",
+    globalSetup: ["./test/vitest.global-setup.ts"],
+    setupFiles: ["./test/setup-e2e.ts"],
+    testTimeout: 30000,
     include: ["test/**/*.test.ts"],
     coverage: {
       reporter: ["text", "html"],

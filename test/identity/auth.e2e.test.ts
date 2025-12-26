@@ -1,16 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startInfra, stopInfra, type StartedInfra } from "../integration/infra";
 import { createApp } from "@/app";
+import { infraPromise } from "@/../test/setup-e2e";
 
 describe("auth (e2e)", () => {
-  let infra: StartedInfra;
+  let infra: Awaited<typeof infraPromise>;
 
   beforeAll(async () => {
-    infra = await startInfra();
-  });
-
-  afterAll(async () => {
-    await stopInfra(infra);
+    infra = await infraPromise;
   });
 
   it("registers then logs in", async () => {

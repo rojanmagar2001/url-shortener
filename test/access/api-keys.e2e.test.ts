@@ -5,16 +5,13 @@ import {
   type StartedInfra,
 } from "@/../test/integration/infra";
 import { createApp } from "@/app";
+import { infraPromise } from "@/../test/setup-e2e";
 
 describe("api keys (e2e)", () => {
-  let infra: StartedInfra;
+  let infra: Awaited<typeof infraPromise>;
 
   beforeAll(async () => {
-    infra = await startInfra();
-  });
-
-  afterAll(async () => {
-    await stopInfra(infra);
+    infra = await infraPromise;
   });
 
   it("creates an API key and can authenticate with it", async () => {

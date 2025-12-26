@@ -18,6 +18,8 @@ import { registerAdminRoutes } from "@/admin/interfaces/http/routes";
 import { PrismaApiKeyRepository } from "@/access/infrastructure/persistence/prisma-api-key-repository";
 import { registerApiKeyRoutes } from "@/access/interfaces/http/routes";
 import { PrismaAuditLogRepository } from "@/audit/infrastructure/persistence/prisma-audit-log-repository";
+import { PrismaLinkRepository } from "@/links/infrastructure/persistence/prisma-link-repository";
+import { registerLinkRoutes } from "@/links/interfaces/http/routes";
 
 export type CreateAppOptions = {
   logger?: boolean;
@@ -47,6 +49,7 @@ export async function createApp(
   const sessionsRepo = new PrismaSessionRepository(prisma);
   const apiKeysRepo = new PrismaApiKeyRepository(prisma);
   const auditRepo = new PrismaAuditLogRepository(prisma);
+  const linksRepo = new PrismaLinkRepository(prisma);
   const passwordHasher = new BcryptPasswordHasher(12);
 
   const tokens = new JwtTokenService(config.jwt, sessionsRepo, usersRepo);
@@ -84,6 +87,10 @@ export async function createApp(
       repo: apiKeysRepo,
       audit: auditRepo,
     });
+  });
+
+  void app.register(async (instance) => {
+    await registerLinkRoutes(instance, { links: linksRepo, audit: auditRepo });
   });
 
   app.get("/", async () => ({ service: "url-shortener" as const }));

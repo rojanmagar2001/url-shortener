@@ -5,16 +5,13 @@ import {
   type StartedInfra,
 } from "@/../test/integration/infra";
 import { createApp } from "@/app.js";
+import { infraPromise } from "@/../test/setup-e2e";
 
 describe("POST /auth/provider (e2e)", () => {
-  let infra: StartedInfra;
+  let infra: Awaited<typeof infraPromise>;
 
   beforeAll(async () => {
-    infra = await startInfra();
-  });
-
-  afterAll(async () => {
-    await stopInfra(infra);
+    infra = await infraPromise;
   });
 
   it("authenticates via local provider and creates external identity link", async () => {
