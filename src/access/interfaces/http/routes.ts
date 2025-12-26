@@ -6,6 +6,8 @@ import { err } from "@/shared/errors";
 import { createApiKeySchema } from "./schemas";
 import { createApiKey } from "@/access/application/use-cases/create-api-key";
 import type { ApiKeyRepositoryPort } from "@/access/application/ports/api-key-repository.port";
+import type { AuditLogRepositoryPort } from "@/audit/application/ports/audit-log-repository.port";
+import { ipHashOf, userAgentOf } from "@/audit/interfaces/http/helpers";
 
 function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
@@ -15,7 +17,7 @@ function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
 
 export async function registerApiKeyRoutes(
   app: FastifyInstance,
-  deps: { repo: ApiKeyRepositoryPort },
+  deps: { repo: ApiKeyRepositoryPort; audit: AuditLogRepositoryPort },
 ): Promise<void> {
   app.post("/settings/api-keys", async (req, reply) => {
     requireAuth(req.auth);
@@ -33,6 +35,18 @@ export async function registerApiKeyRoutes(
         expiresAt,
       },
     );
+
+    await deps.audit.create({
+      actorType: "user",
+      actorUserId: req.auth.userId,
+      actorApiKeyId: null,
+      action: "access.api-key.create",
+      resourceType: "api_key",
+      resourceId: result.apiKeyId,
+      ipHash: ipHashOf(req),
+      userAgent: userAgentOf(req),
+      metadata: { name: body.name, scopes: body.scopes },
+    });
 
     return reply.status(201).send(result);
   });

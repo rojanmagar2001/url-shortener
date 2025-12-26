@@ -17,6 +17,7 @@ import { registerMeRoutes } from "@/identity/interfaces/http/me-routes";
 import { registerAdminRoutes } from "@/admin/interfaces/http/routes";
 import { PrismaApiKeyRepository } from "@/access/infrastructure/persistence/prisma-api-key-repository";
 import { registerApiKeyRoutes } from "@/access/interfaces/http/routes";
+import { PrismaAuditLogRepository } from "@/audit/infrastructure/persistence/prisma-audit-log-repository";
 
 export type CreateAppOptions = {
   logger?: boolean;
@@ -45,6 +46,7 @@ export async function createApp(
   const externalIdentitiesRepo = new PrismaExternalIdentityRepository(prisma);
   const sessionsRepo = new PrismaSessionRepository(prisma);
   const apiKeysRepo = new PrismaApiKeyRepository(prisma);
+  const auditRepo = new PrismaAuditLogRepository(prisma);
   const passwordHasher = new BcryptPasswordHasher(12);
 
   const tokens = new JwtTokenService(config.jwt, sessionsRepo, usersRepo);
@@ -69,6 +71,7 @@ export async function createApp(
         tokens,
       },
       refreshDeps: { sessions: sessionsRepo, tokens },
+      audit: auditRepo,
     });
   });
 
@@ -77,7 +80,10 @@ export async function createApp(
   await app.register(registerMeRoutes);
 
   void app.register(async (instance) => {
-    await registerApiKeyRoutes(instance, { repo: apiKeysRepo });
+    await registerApiKeyRoutes(instance, {
+      repo: apiKeysRepo,
+      audit: auditRepo,
+    });
   });
 
   app.get("/", async () => ({ service: "url-shortener" as const }));

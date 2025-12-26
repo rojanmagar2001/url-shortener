@@ -16,12 +16,19 @@ import { refreshSession } from "@/identity/application/use-cases/refresh-session
 import type { SessionRepositoryPort } from "@/identity/application/ports/session-repository.port";
 import type { TokenServicePort } from "@/identity/application/ports/token-service.port";
 import { err } from "@/shared/errors";
+import type { AuditLogRepositoryPort } from "@/audit/application/ports/audit-log-repository.port";
+import {
+  actorFromAuth,
+  ipHashOf,
+  userAgentOf,
+} from "@/audit/interfaces/http/helpers";
 
 export type IdentityHttpDeps = {
   registerDeps: RegisterWithPasswordDeps;
   loginDeps: LoginWithPasswordDeps;
   providerDeps: AuthenticateWithProviderDeps;
   refreshDeps: { sessions: SessionRepositoryPort; tokens: TokenServicePort };
+  audit: AuditLogRepositoryPort;
 };
 
 // Tiny helper to convert Zod failures into thrown errors the middleware handles.
@@ -44,12 +51,37 @@ export async function registerIdentityRoutes(
   app.post("/auth/register", async (req, reply) => {
     const body = parseOrThrow(registerSchema, req.body);
     const result = await registerWithPassword(deps.registerDeps, body);
+
+    await deps.audit.create({
+      actorType: "user",
+      actorUserId: result.userId,
+      actorApiKeyId: null,
+      action: "identity.register",
+      resourceType: "user",
+      resourceId: result.userId,
+      ipHash: ipHashOf(req),
+      userAgent: userAgentOf(req),
+      metadata: { email: body.email },
+    });
+
     return reply.status(201).send(result);
   });
 
   app.post("/auth/login", async (req, reply) => {
     const body = parseOrThrow(loginSchema, req.body);
     const result = await loginWithPassword(deps.loginDeps, body);
+
+    await deps.audit.create({
+      actorType: "user",
+      actorUserId: result.userId,
+      actorApiKeyId: null,
+      action: "identity.login",
+      resourceType: "session",
+      resourceId: null,
+      ipHash: ipHashOf(req),
+      userAgent: userAgentOf(req),
+      metadata: {},
+    });
     return reply.status(200).send(result);
   });
 
