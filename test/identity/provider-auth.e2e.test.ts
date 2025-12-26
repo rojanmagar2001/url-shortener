@@ -18,7 +18,10 @@ describe("POST /auth/provider (e2e)", () => {
   });
 
   it("authenticates via local provider and creates external identity link", async () => {
-    const app = createApp({ logger: false, databaseUrl: infra.databaseUrl });
+    const app = await createApp({
+      logger: false,
+      databaseUrl: infra.databaseUrl,
+    });
     await app.ready();
 
     // First create a user with password via /auth/register (Step 4 flow)

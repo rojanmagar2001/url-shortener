@@ -46,4 +46,15 @@ export class PrismaUserRepository implements UserRepositoryPort {
     });
     return mapUser(row);
   }
+
+  async setRole(userId: string, role: "user" | "admin"): Promise<void> {
+    await this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        role,
+      },
+    });
+  }
 }

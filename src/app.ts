@@ -21,13 +21,17 @@ export type CreateAppOptions = {
   databaseUrl?: string; // for tests
 };
 
-export function createApp(options: CreateAppOptions = {}): FastifyInstance {
+export async function createApp(
+  options: CreateAppOptions = {},
+): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.logger ?? true,
   });
 
-  void app.register(registerErrorHandler);
-  void app.register(registerHealthRoutes);
+  // Register error handler first and AWAIT it
+  await registerErrorHandler(app);
+
+  await app.register(registerHealthRoutes);
 
   const prisma = createPrismaClient(options.databaseUrl ?? config.database.url);
 
@@ -49,9 +53,9 @@ export function createApp(options: CreateAppOptions = {}): FastifyInstance {
   );
 
   // Attach req.auth for all requests
-  app.register(registerAuthMiddleware, { tokens });
+  await app.register(registerAuthMiddleware, { tokens });
 
-  app.register(async (instance) => {
+  await app.register(async (instance) => {
     await registerIdentityRoutes(instance, {
       registerDeps: { users: usersRepo, passwordHasher, tokens },
       loginDeps: { users: usersRepo, passwordHasher, tokens },
@@ -65,9 +69,9 @@ export function createApp(options: CreateAppOptions = {}): FastifyInstance {
     });
   });
 
-  app.register(registerAdminRoutes);
+  await app.register(registerAdminRoutes);
 
-  app.register(registerMeRoutes);
+  await app.register(registerMeRoutes);
 
   app.get("/", async () => ({ service: "url-shortener" as const }));
 

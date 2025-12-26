@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { JwtTokenService } from "@/identity/infrastructure/crypto/jwt-token-service";
 import type { SessionRepositoryPort } from "@/identity/application/ports/session-repository.port";
-import type { UserRepositoryPort } from "@/identity/domain/ports/user-repository.port";
+import type { UserRepositoryPort } from "@/identity/application/ports/user-repository.port";
 
 describe("JwtTokenService", () => {
   it("issues and verifies access token", async () => {
     const users: UserRepositoryPort = {
-      async findById(id: string) {
+      async findById(id: string): Promise<any> {
         return {
           id,
           email: "test@example.com",
@@ -22,6 +22,7 @@ describe("JwtTokenService", () => {
       async createUser() {
         throw new Error("Not implemented in test");
       },
+      async setRole() {},
     };
 
     const sessions: SessionRepositoryPort = {

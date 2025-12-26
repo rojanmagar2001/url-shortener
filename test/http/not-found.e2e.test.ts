@@ -3,7 +3,7 @@ import { createApp } from "@/app";
 
 describe("not found handler (e2e)", () => {
   it("returns a consistent NOT_FOUND envelope", async () => {
-    const app = createApp({
+    const app = await createApp({
       logger: false,
       databaseUrl: "postgresql://unused",
     });

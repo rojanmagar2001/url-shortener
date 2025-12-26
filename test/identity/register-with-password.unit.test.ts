@@ -23,6 +23,8 @@ describe("registerWithPassword (unit)", () => {
       async findById() {
         return null;
       },
+
+      async setRole() {},
     };
 
     const passwordHasher: PasswordHasherPort = {

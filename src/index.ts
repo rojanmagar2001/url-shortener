@@ -2,7 +2,7 @@ import { config } from "@/shared/config";
 import { createApp } from "@/app";
 
 async function main(): Promise<void> {
-  const app = createApp({ logger: config.env !== "test" });
+  const app = await createApp({ logger: config.env !== "test" });
 
   const shutdown = async (signal: string): Promise<void> => {
     try {

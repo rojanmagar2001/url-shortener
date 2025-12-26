@@ -22,7 +22,10 @@ describe("auth refresh (e2e)", () => {
   });
 
   it("rotates refresh token and revokes old session", async () => {
-    const app = createApp({ logger: false, databaseUrl: infra.databaseUrl });
+    const app = await createApp({
+      logger: false,
+      databaseUrl: infra.databaseUrl,
+    });
     await app.ready();
 
     const regRes = await app.inject({
@@ -57,13 +60,16 @@ describe("auth refresh (e2e)", () => {
       payload: { refreshToken: reg.tokens.refreshToken },
     });
     expect(refreshAgain.statusCode).toBe(401);
-    expect(refreshAgain.json().code).toBe("SESSION_REVOKED");
+    expect(refreshAgain.json().error).toBe("SESSION_REVOKED");
 
     await app.close();
   });
 
   it("access token authorizes /me", async () => {
-    const app = createApp({ logger: false, databaseUrl: infra.databaseUrl });
+    const app = await createApp({
+      logger: false,
+      databaseUrl: infra.databaseUrl,
+    });
     await app.ready();
 
     const regRes = await app.inject({

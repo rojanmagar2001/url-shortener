@@ -17,6 +17,7 @@ function requestIdOf(req: FastifyRequest): string | undefined {
 export async function registerErrorHandler(
   app: FastifyInstance,
 ): Promise<void> {
+  // Don't wrap in a plugin, just set directly
   app.setNotFoundHandler(async (req, reply) => {
     const def = ERRORS.NOT_FOUND;
     const body: ErrorResponse = {
@@ -53,7 +54,6 @@ export async function registerErrorHandler(
       }
 
       req.log.error({ err: error }, "unhandled error");
-
       const def = ERRORS.INTERNAL_ERROR;
       const body: ErrorResponse = {
         error: def.code,

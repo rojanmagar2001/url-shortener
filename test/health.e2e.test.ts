@@ -3,7 +3,7 @@ import { createApp } from "@/app";
 
 describe("GET /healthz", () => {
   it("returns 200 and status ok", async () => {
-    const app = createApp({ logger: false });
+    const app = await createApp({ logger: false });
     await app.ready();
 
     const res = await app.inject({

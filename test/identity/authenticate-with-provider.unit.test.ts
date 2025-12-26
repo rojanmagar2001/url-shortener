@@ -53,6 +53,7 @@ describe("authenticateWithProvider (unit)", () => {
       async findById() {
         return null;
       },
+      async setRole() {},
     };
 
     const tokens: TokenServicePort = {
