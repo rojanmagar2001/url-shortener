@@ -15,6 +15,8 @@ import { JwtTokenService } from "@/identity/infrastructure/crypto/jwt-token-serv
 import { registerAuthMiddleware } from "@/identity/interfaces/http/middleware";
 import { registerMeRoutes } from "@/identity/interfaces/http/me-routes";
 import { registerAdminRoutes } from "@/admin/interfaces/http/routes";
+import { PrismaApiKeyRepository } from "@/access/infrastructure/persistence/prisma-api-key-repository";
+import { registerApiKeyRoutes } from "@/access/interfaces/http/routes";
 
 export type CreateAppOptions = {
   logger?: boolean;
@@ -42,6 +44,7 @@ export async function createApp(
   const usersRepo = new PrismaUserRepository(prisma);
   const externalIdentitiesRepo = new PrismaExternalIdentityRepository(prisma);
   const sessionsRepo = new PrismaSessionRepository(prisma);
+  const apiKeysRepo = new PrismaApiKeyRepository(prisma);
   const passwordHasher = new BcryptPasswordHasher(12);
 
   const tokens = new JwtTokenService(config.jwt, sessionsRepo, usersRepo);
@@ -53,7 +56,7 @@ export async function createApp(
   );
 
   // Attach req.auth for all requests
-  await app.register(registerAuthMiddleware, { tokens });
+  await app.register(registerAuthMiddleware, { tokens, apiKeys: apiKeysRepo });
 
   await app.register(async (instance) => {
     await registerIdentityRoutes(instance, {
@@ -72,6 +75,10 @@ export async function createApp(
   await app.register(registerAdminRoutes);
 
   await app.register(registerMeRoutes);
+
+  void app.register(async (instance) => {
+    await registerApiKeyRoutes(instance, { repo: apiKeysRepo });
+  });
 
   app.get("/", async () => ({ service: "url-shortener" as const }));
 
