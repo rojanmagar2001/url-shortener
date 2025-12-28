@@ -4,6 +4,12 @@ import type { LinkRepositoryPort } from "@/links/application/ports/link-reposito
 import type { AppRedis } from "@/shared/redis/client";
 import { resolveLink } from "@/links/application/use-cases/resolve-link";
 
+import type { EventProducer } from "@/shared/kafka/producer";
+import { TOPICS } from "@/shared/kafka/topics";
+import { randomUUID } from "node:crypto";
+import type { LinkClickedEvent } from "@/shared/events/link-clicked-event";
+import { ipHashOf, userAgentOf } from "@/audit/interfaces/http/helpers";
+
 // Basic “internal target” denylist for IP literals and common local hostnames.
 // This is NOT full SSRF defense (no DNS resolution). It prevents obvious abuse.
 function isUnsafeRedirectTarget(urlStr: string): boolean {
@@ -50,7 +56,7 @@ function isUnsafeRedirectTarget(urlStr: string): boolean {
 
 export async function registerRedirectRoutes(
   app: FastifyInstance,
-  deps: { links: LinkRepositoryPort; redis: AppRedis },
+  deps: { links: LinkRepositoryPort; redis: AppRedis; producer: EventProducer },
 ): Promise<void> {
   app.get("/:code", async (req, reply) => {
     const code = (req.params as any).code as string;
@@ -79,6 +85,19 @@ export async function registerRedirectRoutes(
     if (isUnsafeRedirectTarget(found.originalUrl)) {
       throw err("LINK_UNSAFE_REDIRECT");
     }
+
+    const event: LinkClickedEvent = {
+      eventId: randomUUID(),
+      linkId: (found as any).id ?? "unknown", // we need linkId from resolveLink
+      code,
+      clickedAt: new Date().toISOString(),
+      referrer:
+        typeof req.headers.referer === "string" ? req.headers.referer : null,
+      userAgent: userAgentOf(req),
+      ipHash: ipHashOf(req),
+    };
+
+    await deps.producer.publish(TOPICS.linkClicked, code, event);
 
     return reply.redirect(found.originalUrl);
   });

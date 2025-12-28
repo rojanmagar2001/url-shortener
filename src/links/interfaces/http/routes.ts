@@ -10,6 +10,10 @@ import { createLink } from "@/links/application/use-cases/create-link";
 import type { LinkRepositoryPort } from "@/links/application/ports/link-repository.port";
 import type { AuditLogRepositoryPort } from "@/audit/application/ports/audit-log-repository.port";
 import { ipHashOf, userAgentOf } from "@/audit/interfaces/http/helpers";
+import { EventProducer } from "@/shared/kafka/producer";
+import { AuditEvent } from "@/shared/events/audit-event";
+import { TOPICS } from "@/shared/kafka/topics";
+import { randomUUID } from "crypto";
 
 function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
@@ -19,7 +23,11 @@ function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
 
 export async function registerLinkRoutes(
   app: FastifyInstance,
-  deps: { links: LinkRepositoryPort; audit: AuditLogRepositoryPort },
+  deps: {
+    links: LinkRepositoryPort;
+    audit: AuditLogRepositoryPort;
+    producer: EventProducer;
+  },
 ): Promise<void> {
   app.post("/api/links", async (req, reply) => {
     requireAuth(req.auth);
@@ -43,7 +51,7 @@ export async function registerLinkRoutes(
       },
     );
 
-    await deps.audit.create({
+    const auditRow = await deps.audit.create({
       actorType: req.auth.kind === "api_key" ? "api_key" : "user",
       actorUserId: req.auth.userId,
       actorApiKeyId: req.auth.kind === "api_key" ? req.auth.apiKeyId : null,
@@ -54,6 +62,22 @@ export async function registerLinkRoutes(
       userAgent: userAgentOf(req),
       metadata: { code: result.code },
     });
+
+    const evt: AuditEvent = {
+      eventId: randomUUID(),
+      occurredAt: new Date().toISOString(),
+      actorType: auditRow.actorType,
+      actorUserId: auditRow.actorUserId,
+      actorApiKeyId: auditRow.actorApiKeyId,
+      action: auditRow.action,
+      resourceType: auditRow.resourceType,
+      resourceId: auditRow.resourceId,
+      ipHash: auditRow.ipHash,
+      userAgent: auditRow.userAgent,
+      metadata: auditRow.metadata,
+    };
+
+    await deps.producer.publish(TOPICS.audit, auditRow.id, evt);
 
     return reply.status(201).send(result);
   });

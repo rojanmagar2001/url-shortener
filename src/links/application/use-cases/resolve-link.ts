@@ -2,8 +2,9 @@ import type { LinkRepositoryPort } from "@/links/application/ports/link-reposito
 import type { AppRedis } from "@/shared/redis/client";
 
 export type CachedLink = {
+  linkId: string;
   originalUrl: string;
-  expiresAt: string | null; // ISO
+  expiresAt: string | null;
   isActive: boolean;
 };
 
@@ -39,6 +40,7 @@ export async function resolveLink(
   if (!link) return null;
 
   const payload: CachedLink = {
+    linkId: link.id,
     originalUrl: link.originalUrl,
     expiresAt: link.expiresAt ? link.expiresAt.toISOString() : null,
     isActive: link.isActive,

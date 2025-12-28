@@ -11,8 +11,10 @@ const execAsync = promisify(exec);
 export type StartedInfra = {
   postgres: StartedTestContainer;
   redis: StartedTestContainer;
+  kafka: StartedTestContainer;
   databaseUrl: string;
   redisUrl: string;
+  kafkaBrokers: string[];
 };
 
 async function createDbPush(
@@ -62,11 +64,40 @@ export async function startInfra(): Promise<StartedInfra> {
   const redisPort = redis.getMappedPort(6379);
   const redisUrl = `redis://${redisHost}:${redisPort}`;
 
-  return { postgres, redis, databaseUrl, redisUrl };
+  // Redpanda: expose Kafka on fixed port so advertised address works reliably
+  const kafka = await new GenericContainer(
+    "docker.redpanda.com/redpandadata/redpanda:latest",
+  )
+    .withExposedPorts(19092, 9092)
+    .withCommand([
+      "redpanda",
+      "start",
+      "--overprovisioned",
+      "--smp",
+      "1",
+      "--memory",
+      "1G",
+      "--reserve-memory",
+      "0M",
+      "--node-id",
+      "0",
+      "--check=false",
+      "--kafka-addr",
+      "PLAINTEXT://0.0.0.0:9092",
+      "--advertise-kafka-addr",
+      "PLAINTEXT://localhost:19092",
+    ])
+    .withWaitStrategy(Wait.forListeningPorts())
+    .start();
+
+  const kafkaBrokers = ["localhost:19092"];
+
+  return { postgres, redis, kafka, databaseUrl, redisUrl, kafkaBrokers };
 }
 
 export async function stopInfra(infra: StartedInfra): Promise<void> {
   if (!infra) return;
+  await infra.kafka.stop();
   await infra.redis?.stop();
   await infra.postgres?.stop();
 }

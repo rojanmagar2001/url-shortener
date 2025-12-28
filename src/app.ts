@@ -26,12 +26,23 @@ import { registerRedirectRoutes } from "@/links/interfaces/http/redirect";
 
 import { registerRateLimitPlugin } from "@/shared/rate-limit/plugin";
 
+import {
+  KafkaJsProducer,
+  NoopProducer,
+  type EventProducer,
+} from "@/shared/kafka/producer";
+import { TOPICS } from "@/shared/kafka/topics";
+
 export type CreateAppOptions = {
   logger?: boolean;
   databaseUrl?: string; // for tests
   rateLimit?: {
     redirect: { limit: number; windowSeconds: number };
     api: { limit: number; windowSeconds: number };
+  };
+  kafka?: {
+    enabled: boolean;
+    brokers: string[];
   };
 };
 
@@ -56,6 +67,27 @@ export async function createApp(
   const redis = await createRedisClient(config.redis.url);
   app.addHook("onClose", async () => {
     await redis.quit();
+  });
+
+  const producer: EventProducer = options.kafka?.enabled
+    ? (() => {
+        const p = new KafkaJsProducer({
+          clientId: "url-shortener",
+          brokers: options.kafka!.brokers,
+        });
+        // we connect in a register block so createApp can remain sync
+        return p as unknown as EventProducer;
+      })()
+    : new NoopProducer();
+
+  void app.register(async () => {
+    if (producer instanceof KafkaJsProducer) {
+      await producer.init();
+    }
+
+    app.addHook("onClose", async () => {
+      await producer.close();
+    });
   });
 
   const usersRepo = new PrismaUserRepository(prisma);

@@ -23,12 +23,19 @@ import {
   userAgentOf,
 } from "@/audit/interfaces/http/helpers";
 
+import type { EventProducer } from "@/shared/kafka/producer";
+
+import { TOPICS } from "@/shared/kafka/topics";
+import { randomUUID } from "node:crypto";
+import type { AuditEvent } from "@/shared/events/audit-event";
+
 export type IdentityHttpDeps = {
   registerDeps: RegisterWithPasswordDeps;
   loginDeps: LoginWithPasswordDeps;
   providerDeps: AuthenticateWithProviderDeps;
   refreshDeps: { sessions: SessionRepositoryPort; tokens: TokenServicePort };
   audit: AuditLogRepositoryPort;
+  producer: EventProducer;
 };
 
 // Tiny helper to convert Zod failures into thrown errors the middleware handles.
@@ -52,7 +59,7 @@ export async function registerIdentityRoutes(
     const body = parseOrThrow(registerSchema, req.body);
     const result = await registerWithPassword(deps.registerDeps, body);
 
-    await deps.audit.create({
+    const auditRow = await deps.audit.create({
       actorType: "user",
       actorUserId: result.userId,
       actorApiKeyId: null,
@@ -64,6 +71,22 @@ export async function registerIdentityRoutes(
       metadata: { email: body.email },
     });
 
+    const evt: AuditEvent = {
+      eventId: randomUUID(),
+      occurredAt: new Date().toISOString(),
+      actorType: auditRow.actorType,
+      actorUserId: auditRow.actorUserId,
+      actorApiKeyId: auditRow.actorApiKeyId,
+      action: auditRow.action,
+      resourceType: auditRow.resourceType,
+      resourceId: auditRow.resourceId,
+      ipHash: auditRow.ipHash,
+      userAgent: auditRow.userAgent,
+      metadata: auditRow.metadata,
+    };
+
+    await deps.producer.publish(TOPICS.audit, auditRow.id, evt);
+
     return reply.status(201).send(result);
   });
 
@@ -71,7 +94,7 @@ export async function registerIdentityRoutes(
     const body = parseOrThrow(loginSchema, req.body);
     const result = await loginWithPassword(deps.loginDeps, body);
 
-    await deps.audit.create({
+    const auditRow = await deps.audit.create({
       actorType: "user",
       actorUserId: result.userId,
       actorApiKeyId: null,
@@ -82,6 +105,23 @@ export async function registerIdentityRoutes(
       userAgent: userAgentOf(req),
       metadata: {},
     });
+
+    const evt: AuditEvent = {
+      eventId: randomUUID(),
+      occurredAt: new Date().toISOString(),
+      actorType: auditRow.actorType,
+      actorUserId: auditRow.actorUserId,
+      actorApiKeyId: auditRow.actorApiKeyId,
+      action: auditRow.action,
+      resourceType: auditRow.resourceType,
+      resourceId: auditRow.resourceId,
+      ipHash: auditRow.ipHash,
+      userAgent: auditRow.userAgent,
+      metadata: auditRow.metadata,
+    };
+
+    await deps.producer.publish(TOPICS.audit, auditRow.id, evt);
+
     return reply.status(200).send(result);
   });
 
