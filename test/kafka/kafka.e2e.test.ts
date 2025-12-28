@@ -1,9 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  startInfra,
-  stopInfra,
-  type StartedInfra,
-} from "@/../test/integration/infra.js";
+import { describe, expect, it } from "vitest";
 import { createApp } from "@/app.js";
 import { TOPICS } from "@/shared/kafka/topics.js";
 import { consumeOneJson } from "@/../test/integration/kafka.js";

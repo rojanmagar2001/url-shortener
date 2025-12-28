@@ -128,6 +128,7 @@ export async function createApp(
       },
       refreshDeps: { sessions: sessionsRepo, tokens },
       audit: auditRepo,
+      producer,
     });
   });
 
@@ -139,18 +140,27 @@ export async function createApp(
     await registerApiKeyRoutes(instance, {
       repo: apiKeysRepo,
       audit: auditRepo,
+      producer,
     });
   });
 
   void app.register(async (instance) => {
-    await registerLinkRoutes(instance, { links: linksRepo, audit: auditRepo });
+    await registerLinkRoutes(instance, {
+      links: linksRepo,
+      audit: auditRepo,
+      producer,
+    });
   });
 
   app.get("/", async () => ({ service: "url-shortener" as const }));
 
   void app.register(async (instance) => {
     // register redirect route AFTER other routes to reduce conflicts
-    await registerRedirectRoutes(instance, { links: linksRepo, redis });
+    await registerRedirectRoutes(instance, {
+      links: linksRepo,
+      redis,
+      producer,
+    });
   });
 
   return app;
