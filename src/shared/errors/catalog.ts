@@ -11,7 +11,10 @@ export type ErrorCode =
   | "IDENTITY_INVALID_CREDENTIALS"
   | "IDENTITY_USER_DISABLED"
   | "IDENTITY_PROVIDER_NOT_SUPPORTED"
-  | "IDENTITY_EMAIL_NOT_VERIFIED";
+  | "IDENTITY_EMAIL_NOT_VERIFIED"
+  | "LINK_INACTIVE"
+  | "LINK_EXPIRED"
+  | "LINK_UNSAFE_REDIRECT";
 
 export type ErrorDefinition = Readonly<{
   code: ErrorCode;
@@ -83,5 +86,21 @@ export const ERRORS: Record<ErrorCode, ErrorDefinition> = {
     code: "IDENTITY_EMAIL_NOT_VERIFIED",
     statusCode: 403,
     message: "Email is not verified with the provider",
+  },
+
+  LINK_INACTIVE: {
+    code: "LINK_INACTIVE",
+    statusCode: 410,
+    message: "Link is inactive",
+  },
+  LINK_EXPIRED: {
+    code: "LINK_EXPIRED",
+    statusCode: 410,
+    message: "Link has expired",
+  },
+  LINK_UNSAFE_REDIRECT: {
+    code: "LINK_UNSAFE_REDIRECT",
+    statusCode: 400,
+    message: "Unsafe redirect target",
   },
 };

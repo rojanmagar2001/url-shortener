@@ -21,6 +21,9 @@ import { PrismaAuditLogRepository } from "@/audit/infrastructure/persistence/pri
 import { PrismaLinkRepository } from "@/links/infrastructure/persistence/prisma-link-repository";
 import { registerLinkRoutes } from "@/links/interfaces/http/routes";
 
+import { createRedisClient } from "@/shared/redis/client";
+import { registerRedirectRoutes } from "@/links/interfaces/http/redirect";
+
 export type CreateAppOptions = {
   logger?: boolean;
   databaseUrl?: string; // for tests
@@ -42,6 +45,11 @@ export async function createApp(
 
   app.addHook("onClose", async () => {
     await prisma.$disconnect();
+  });
+
+  const redis = await createRedisClient(config.redis.url);
+  app.addHook("onClose", async () => {
+    await redis.quit();
   });
 
   const usersRepo = new PrismaUserRepository(prisma);
@@ -94,6 +102,11 @@ export async function createApp(
   });
 
   app.get("/", async () => ({ service: "url-shortener" as const }));
+
+  void app.register(async (instance) => {
+    // register redirect route AFTER other routes to reduce conflicts
+    await registerRedirectRoutes(instance, { links: linksRepo, redis });
+  });
 
   return app;
 }
