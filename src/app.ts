@@ -24,9 +24,15 @@ import { registerLinkRoutes } from "@/links/interfaces/http/routes";
 import { createRedisClient } from "@/shared/redis/client";
 import { registerRedirectRoutes } from "@/links/interfaces/http/redirect";
 
+import { registerRateLimitPlugin } from "@/shared/rate-limit/plugin";
+
 export type CreateAppOptions = {
   logger?: boolean;
   databaseUrl?: string; // for tests
+  rateLimit?: {
+    redirect: { limit: number; windowSeconds: number };
+    api: { limit: number; windowSeconds: number };
+  };
 };
 
 export async function createApp(
@@ -70,6 +76,13 @@ export async function createApp(
 
   // Attach req.auth for all requests
   await app.register(registerAuthMiddleware, { tokens, apiKeys: apiKeysRepo });
+
+  const rl = options.rateLimit ?? {
+    redirect: { limit: 60, windowSeconds: 60 },
+    api: { limit: 30, windowSeconds: 60 },
+  };
+
+  void app.register(registerRateLimitPlugin, { redis, config: rl });
 
   await app.register(async (instance) => {
     await registerIdentityRoutes(instance, {

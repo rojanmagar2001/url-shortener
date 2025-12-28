@@ -14,7 +14,8 @@ export type ErrorCode =
   | "IDENTITY_EMAIL_NOT_VERIFIED"
   | "LINK_INACTIVE"
   | "LINK_EXPIRED"
-  | "LINK_UNSAFE_REDIRECT";
+  | "LINK_UNSAFE_REDIRECT"
+  | "RATE_LIMITED";
 
 export type ErrorDefinition = Readonly<{
   code: ErrorCode;
@@ -102,5 +103,11 @@ export const ERRORS: Record<ErrorCode, ErrorDefinition> = {
     code: "LINK_UNSAFE_REDIRECT",
     statusCode: 400,
     message: "Unsafe redirect target",
+  },
+
+  RATE_LIMITED: {
+    code: "RATE_LIMITED",
+    statusCode: 429,
+    message: "Too many requests",
   },
 };
