@@ -13,18 +13,22 @@ function isJwt(token: string): boolean {
 
 describe("auth refresh (e2e)", () => {
   let infra: Awaited<typeof infraPromise>;
+  let app: Awaited<ReturnType<typeof createApp>>;
 
   beforeAll(async () => {
     infra = await infraPromise;
-  });
-
-  it("rotates refresh token and revokes old session", async () => {
-    const app = await createApp({
+    app = await createApp({
       logger: false,
       databaseUrl: infra.databaseUrl,
     });
     await app.ready();
+  });
 
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("rotates refresh token and revokes old session", async () => {
     const regRes = await app.inject({
       method: "POST",
       url: "/auth/register",
@@ -63,12 +67,6 @@ describe("auth refresh (e2e)", () => {
   });
 
   it("access token authorizes /me", async () => {
-    const app = await createApp({
-      logger: false,
-      databaseUrl: infra.databaseUrl,
-    });
-    await app.ready();
-
     const regRes = await app.inject({
       method: "POST",
       url: "/auth/register",

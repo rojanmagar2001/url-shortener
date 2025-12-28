@@ -1,17 +1,34 @@
 // vitest.global-setup.ts
-let infra: any; // Replace with your actual infra type
+
+import { getInfra, cleanupInfra } from "./infraManager.js";
 
 export async function setup() {
-  const { startInfra } = await import("./integration/infra.js"); // adjust path
-  infra = await startInfra();
+  console.log("\n🚀 Global Setup: Starting test infrastructure...\n");
 
-  // Store in environment variables (accessible in tests)
-  process.env.TEST_DB_URL = infra.dbUrl;
-  process.env.TEST_API_URL = infra.apiUrl;
+  // This triggers infrastructure startup
+  const infra = await getInfra();
+
+  // Store in environment variables (accessible in all tests)
+  process.env.TEST_DATABASE_URL = infra.databaseUrl;
+  process.env.TEST_REDIS_URL = infra.redisUrl;
+  process.env.TEST_KAFKA_BROKERS = infra.kafkaBrokers.join(",");
+  process.env.TEST_ANALYTICS_URL = infra.analyticsUrl;
+
+  console.log("\n✅ Global Setup: Infrastructure ready for tests\n");
 
   // Return teardown function
   return async () => {
-    const { stopInfra } = await import("./integration/infra.js");
-    await stopInfra(infra);
+    console.log("\n🧹 Global Teardown: Cleaning up infrastructure...\n");
+
+    // This stops the shared infrastructure
+    await cleanupInfra();
+
+    // Clean up environment variables
+    delete process.env.TEST_DATABASE_URL;
+    delete process.env.TEST_REDIS_URL;
+    delete process.env.TEST_KAFKA_BROKERS;
+    delete process.env.TEST_ANALYTICS_URL;
+
+    console.log("\n✅ Global Teardown: Complete\n");
   };
 }

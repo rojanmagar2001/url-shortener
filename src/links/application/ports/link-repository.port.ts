@@ -13,4 +13,5 @@ export type CreateLinkInput = {
 export type LinkRepositoryPort = {
   create(input: CreateLinkInput): Promise<Link>;
   findByCode(code: string): Promise<Link | null>;
+  findById(id: string): Promise<Link | null>;
 };

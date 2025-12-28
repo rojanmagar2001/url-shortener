@@ -10,8 +10,12 @@ export default defineConfig({
     environment: "node",
     globalSetup: ["./test/vitest.global-setup.ts"],
     setupFiles: ["./test/setup-e2e.ts"],
-    testTimeout: 30000,
+    // Longer timeout for container startup
+    testTimeout: 60_000,
+    hookTimeout: 120_000,
     include: ["test/**/*.test.ts"],
+    fileParallelism: false,
+    // Use threads instead of forks for shared memory
     coverage: {
       reporter: ["text", "html"],
     },

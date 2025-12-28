@@ -41,4 +41,9 @@ export class PrismaLinkRepository implements LinkRepositoryPort {
     const row = await this.prisma.link.findUnique({ where: { code } });
     return row ? map(row) : null;
   }
+
+  async findById(id: string): Promise<Link | null> {
+    const row = await this.prisma.link.findUnique({ where: { id } });
+    return row ? map(row) : null;
+  }
 }

@@ -37,39 +37,44 @@ async function createDbPush(
 }
 
 export async function startInfra(): Promise<StartedInfra> {
+  console.log("🐳 Starting PostgreSQL...");
   // PostgreSQL with minimal resources
   const postgres = await new GenericContainer("postgres:16-alpine")
     .withEnvironment({
       POSTGRES_USER: "test",
       POSTGRES_PASSWORD: "test",
       POSTGRES_DB: "app",
-      POSTGRES_INITDB_ARGS: "-c shared_buffers=32MB -c max_connections=20",
     })
     .withCommand([
       "postgres",
       "-c",
       "shared_buffers=32MB",
       "-c",
-      "max_connections=20",
+      "max_connections=50",
       "-c",
       "fsync=off",
       "-c",
       "synchronous_commit=off",
       "-c",
       "full_page_writes=off",
+      "-c",
+      "random_page_cost=1.0",
     ])
     .withExposedPorts(5432)
     .withWaitStrategy(
       Wait.forLogMessage(/database system is ready to accept connections/, 2),
     )
+    .withStartupTimeout(60_000)
     .start();
 
   const pgHost = postgres.getHost();
   const pgPort = postgres.getMappedPort(5432);
   const databaseUrl = `postgresql://test:test@${pgHost}:${pgPort}/app?schema=public`;
 
+  console.log("📦 Running Prisma migrations...");
   await createDbPush(databaseUrl, 5);
 
+  console.log("🐳 Starting Redis...");
   // Redis with minimal memory
   const redis = await new GenericContainer("redis:7-alpine")
     .withExposedPorts(6379)
@@ -85,40 +90,40 @@ export async function startInfra(): Promise<StartedInfra> {
       "no",
     ])
     .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
+    .withStartupTimeout(30_000)
     .start();
 
   const redisHost = redis.getHost();
   const redisPort = redis.getMappedPort(6379);
   const redisUrl = `redis://${redisHost}:${redisPort}`;
 
-  // Redpanda with minimal resources
+  console.log("🐳 Starting Kafka (Redpanda)...");
+  // Lighter Kafka using Wurstmeister (uses less memory than Redpanda)
   const kafka = await new GenericContainer(
-    "docker.redpanda.com/redpandadata/redpanda:latest",
+    "docker.redpanda.com/redpandadata/redpanda:v23.3.3",
   )
-    .withExposedPorts(19092, 9092)
+    .withExposedPorts(9092)
     .withCommand([
       "redpanda",
       "start",
-      "--overprovisioned",
+      "--mode=dev-container",
       "--smp",
       "1",
       "--memory",
-      "512M",
+      "1G",
       "--reserve-memory",
       "0M",
-      "--node-id",
-      "0",
-      "--check=false",
-      "--kafka-addr",
-      "PLAINTEXT://0.0.0.0:9092",
-      "--advertise-kafka-addr",
-      "PLAINTEXT://localhost:19092",
+      "--overprovisioned",
     ])
     .withWaitStrategy(Wait.forListeningPorts())
+    .withStartupTimeout(120_000)
     .start();
 
-  const kafkaBrokers = ["localhost:19092"];
+  const kafkaHost = kafka.getHost();
+  const kafkaPort = kafka.getMappedPort(9092);
+  const kafkaBrokers = [`${kafkaHost}:${kafkaPort}`];
 
+  console.log("🐳 Starting TimescaleDB...");
   // TimescaleDB with minimal resources
   const timescale = await new GenericContainer(
     "timescale/timescaledb:2.14.2-pg16",
@@ -133,23 +138,32 @@ export async function startInfra(): Promise<StartedInfra> {
       "-c",
       "shared_buffers=32MB",
       "-c",
-      "max_connections=20",
+      "max_connections=50",
       "-c",
       "fsync=off",
       "-c",
       "synchronous_commit=off",
       "-c",
       "full_page_writes=off",
+      "-c",
+      "random_page_cost=1.0",
     ])
     .withExposedPorts(5432)
     .withWaitStrategy(
       Wait.forLogMessage(/database system is ready to accept connections/, 2),
     )
+    .withStartupTimeout(60_000)
     .start();
 
   const tsHost = timescale.getHost();
   const tsPort = timescale.getMappedPort(5432);
   const analyticsUrl = `postgresql://test:test@${tsHost}:${tsPort}/analytics`;
+
+  // console.log("✅ All infrastructure started successfully!");
+  // console.log(`   PostgreSQL: ${pgHost}:${pgPort}`);
+  // console.log(`   Redis: ${redisHost}:${redisPort}`);
+  // console.log(`   Kafka: ${kafkaHost}:${kafkaPort}`);
+  // console.log(`   TimescaleDB: ${tsHost}:${tsPort}`);
 
   return {
     postgres,
@@ -166,10 +180,14 @@ export async function startInfra(): Promise<StartedInfra> {
 export async function stopInfra(infra: StartedInfra): Promise<void> {
   if (!infra) return;
 
+  console.log("🧹 Stopping test infrastructure...");
+
   await Promise.allSettled([
     infra.timescale?.stop(),
     infra.kafka?.stop(),
     infra.redis?.stop(),
     infra.postgres?.stop(),
   ]);
+
+  console.log("✅ All containers stopped");
 }

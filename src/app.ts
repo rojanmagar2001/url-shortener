@@ -31,7 +31,9 @@ import {
   NoopProducer,
   type EventProducer,
 } from "@/shared/kafka/producer";
-import { TOPICS } from "@/shared/kafka/topics";
+
+import { TimescaleAnalyticsReader } from "@/analytics/infrastructure/timescale/timescale-analytics-reader";
+import { registerAnalyticsRoutes } from "@/analytics/interfaces/http/routes";
 
 export type CreateAppOptions = {
   logger?: boolean;
@@ -44,6 +46,7 @@ export type CreateAppOptions = {
     enabled: boolean;
     brokers: string[];
   };
+  analytics?: { enabled: boolean; databaseUrl: string };
 };
 
 export async function createApp(
@@ -162,6 +165,20 @@ export async function createApp(
       producer,
     });
   });
+
+  if (options.analytics?.enabled) {
+    const reader = new TimescaleAnalyticsReader(options.analytics.databaseUrl);
+    app.addHook("onClose", async () => {
+      await reader.close();
+    });
+
+    void app.register(async (instance) => {
+      await registerAnalyticsRoutes(instance, {
+        analytics: reader,
+        links: linksRepo,
+      });
+    });
+  }
 
   return app;
 }
